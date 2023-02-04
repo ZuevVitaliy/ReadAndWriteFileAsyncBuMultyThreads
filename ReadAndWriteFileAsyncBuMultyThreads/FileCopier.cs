@@ -26,15 +26,15 @@ namespace ReadAndWriteFileAsyncBuMultyThreads
 
                 var fileLength = File.OpenRead(sourceFilePath).Length;
                 var startIndexLengthPairs = SplitOnToFragments(fileLength, threadsNumber);
-                for (int i = 0; i < startIndexLengthPairs.Count; i++)
+                Parallel.For(0, startIndexLengthPairs.Count, i =>
                 {
                     var pair = startIndexLengthPairs[i];
-                    new Thread(() => CopyFile(
+                    CopyFile(
                         sourceFilePath,
                         destinationFilePath,
-                        pair.StartIndex, pair.Length, 
-                        updateProgressCallback)).Start();
-                }
+                        pair.StartIndex, pair.Length,
+                        updateProgressCallback);
+                });
             });
         }
 
@@ -101,7 +101,9 @@ namespace ReadAndWriteFileAsyncBuMultyThreads
             using (var fileStream = File.OpenWrite(destinationFilePath))
             {
                 var fragmentLength = 256 * 1024;
-                var fragments = SplitOnToFragments(bytes.Length, bytes.Length / fragmentLength);
+                int fragmentsCount = bytes.Length / fragmentLength;
+                fragmentsCount = fragmentsCount < 1 ? 1 : fragmentsCount;
+                var fragments = SplitOnToFragments(bytes.Length, fragmentsCount);
 
                 fileStream.Position = startIndex;
                 foreach (var fragment in fragments)
